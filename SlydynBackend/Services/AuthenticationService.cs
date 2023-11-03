@@ -13,7 +13,7 @@ using Repository.Contracts;
 
 namespace Services;
 
-public class AuthenticationService: IAuthenticationService
+public class AuthenticationService : IAuthenticationService
 {
   private readonly UserManager<User> _userManager;
   private readonly IConfiguration _configuration;
@@ -31,6 +31,15 @@ public class AuthenticationService: IAuthenticationService
     _configuration = configuration;
   }
 
+  public async Task<UserDto> GetUserSession(Guid sessionId)
+  {
+    var result = await _repository.UserSessionRepository.GetSessionAsync(sessionId);
+
+    var mapped = _mapper.Map<UserDto>(result);
+
+    return mapped;
+  }
+
   public async Task<UserDto> GetUserPublicInfo(string username)
   {
     var user = await GetUser(username);
@@ -39,7 +48,7 @@ public class AuthenticationService: IAuthenticationService
       var message = $"{nameof(GetUserPublicInfo)}: User with username {username} not found.";
       throw new Exception(message);
     }
-    
+
     // add comment
 
     var userDto = _mapper.Map<UserDto>(user);
@@ -50,7 +59,8 @@ public class AuthenticationService: IAuthenticationService
   {
     var user = await _userManager.FindByNameAsync(username);
     return user;
-  } 
+  }
+
   public async Task<IdentityResult> RegisterUser(RegisterUserDto userDto)
   {
     var user = _mapper.Map<User>(userDto);
@@ -59,6 +69,33 @@ public class AuthenticationService: IAuthenticationService
     if (userDto.Role != null) await _userManager.AddToRoleAsync(user, userDto.Role);
 
     return result;
+  }
+
+  public async Task<Guid> LoginUserWithSession(LoginUserDto userDto)
+  {
+    var user = await GetUser(userDto.UserName!);
+    if (user == null)
+    {
+      var message = $"{nameof(LoginUser)}: Authentication failed. Wrong username or password.";
+      // TODO: Add logger
+      throw new Exception("Invalid username / password"); // TODO replace with custom exception
+    }
+
+    var passwordMatches = await _userManager.CheckPasswordAsync(user, userDto.Password!);
+
+    if (!passwordMatches)
+    {
+      var message = $"{nameof(LoginUser)}: Authentication failed. Wrong username or password.";
+      // TODO: Add logger
+      throw new Exception("Invalid username / password"); // TODO replace with custom exception
+    }
+
+    var userDtoFromDb = _mapper.Map<UserDto>(user);
+    
+    // store user info in redis
+    var sessionId = await _repository.UserSessionRepository.CreateSessionAsync(userDtoFromDb);
+
+    return sessionId;
   }
 
   public async Task<TokensForAuthenticationDto> LoginUser(LoginUserDto userDto)
@@ -105,7 +142,7 @@ public class AuthenticationService: IAuthenticationService
       TokenString = refreshToken,
       ExpiresAt = DateTime.Now.AddDays(5)
     };
-    
+
     _repository.RefreshTokenRepository.CreateToken(newRefreshToken);
     await _repository.SaveAsync();
     return refreshToken;
@@ -119,15 +156,14 @@ public class AuthenticationService: IAuthenticationService
       signingCredentials,
       claims);
 
+
     return new JwtSecurityTokenHandler().WriteToken(tokenOptions);
   }
 
   private JwtSecurityToken GenerateTokenOptions(SigningCredentials signingCredentials, List<Claim> claims)
   {
-      
     var jwtSettings = _configuration.GetSection("JwtSettings");
     var tokenOptions = new JwtSecurityToken(
-
       issuer: jwtSettings["ValidIssuer"],
       audience: jwtSettings["ValidAudience"],
       claims: claims,
@@ -136,6 +172,7 @@ public class AuthenticationService: IAuthenticationService
     );
     return tokenOptions;
   }
+
   private SigningCredentials GetSigningCredentials()
   {
     var jwtSettings = _configuration.GetSection("JwtSettings");

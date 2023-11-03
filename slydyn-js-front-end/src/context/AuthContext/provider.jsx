@@ -1,5 +1,6 @@
 // @ts-check
 import React, { createContext, useMemo, useState, useContext } from 'react';
+import { setCookie } from 'cookies-next';
 
 /**
  * @typedef {Object} UserInfo
@@ -21,19 +22,17 @@ const initialValues = {
   accessToken: '',
   expiresIn: -1,
   /**
-   * @type {React.Dispatch<React.SetStateAction<UserInfo>>}
+   * 
+   * @param {UserInfo} userInfo 
    */
   setUserInfo: (userInfo) => { },
   /**
-   * @type {React.Dispatch<React.SetStateAction<string>>}
+   * 
+   * @param {string} accessToken 
+   * @param {number} expireIn
    */
-  setAccessToken: (accessToken) => { },
+  setAccessToken: (accessToken, expireIn) => { },
 
-  /**
-   * @type {React.Dispatch<React.SetStateAction<number>>}
-   */
-
-  setExpiresIn: (expiresIn) => { },
 }
 
 export const AuthContext = createContext(initialValues);
@@ -44,14 +43,34 @@ export function AuthProvider({ children }) {
   const [accessToken, setAccessToken] = useState(initialValues.accessToken);
   const [expiresIn, setExpiresIn] = useState(initialValues.expiresIn);
 
+  function _setUserInfo(userInfo) {
+    setUserInfo(userInfo);
+  }
+
+  /**
+   * 
+   * @param {string} accessToken 
+   * @param {number} expiresIn In milliseconds
+   */
+  function _setAccessToken(accessToken, expiresIn) {
+    // store access token in cookies
+    // it's fine though since the access token is short lived
+    setCookie("accessToken", accessToken, {
+      expires: new Date(Date.now() + expiresIn),
+      path: '/',
+    });
+
+    setAccessToken(accessToken);
+    setExpiresIn(expiresIn);
+  }
+
   const contextValue = useMemo(() => {
     return {
       userInfo,
       accessToken,
       expiresIn,
-      setUserInfo,
-      setAccessToken,
-      setExpiresIn,
+      setUserInfo: _setUserInfo,
+      setAccessToken: _setAccessToken,
     }
   }, [accessToken, expiresIn, userInfo])
 

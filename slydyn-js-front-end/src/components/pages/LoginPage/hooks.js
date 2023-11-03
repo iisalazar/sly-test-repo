@@ -6,11 +6,11 @@ import { useAbortControllerWithMaker } from "@/hooks/useAbortController";
 /**
  *
  * @param {Object} params
- * @param {(data: { accessToken: string, expiresIn: number }) => void} params.onLoginSuccess
+ * @param {() => void} params.onLoginSuccess
  * @param {(err: Error) => void} params.onLoginError
  */
 function useLoginForm({
-  onLoginSuccess = (data) => {},
+  onLoginSuccess = () => {},
   onLoginError = (err) => {},
 }) {
   const [abortController, makeAbortController] = useAbortControllerWithMaker();
@@ -22,7 +22,7 @@ function useLoginForm({
     },
     onSubmit: (values, helpers) => {
       handleSubmit(values, helpers)
-        .then((data) => onLoginSuccess(data))
+        .then(() => onLoginSuccess())
         .catch((err) => onLoginError(err));
     },
     validate: (values) => {
@@ -54,17 +54,11 @@ function useLoginForm({
       makeAbortController();
     }
     try {
-      const res = await authServiceInstance.login(
+      await authServiceInstance.loginWithSession(
         values,
         abortController.signal
       );
       formikHelpers.setSubmitting(false);
-      const { accessToken } = res.data;
-
-      return {
-        accessToken,
-        expiresIn: 60 * 60 * 24, // 1 day
-      };
     } catch (error) {
       formikHelpers.setSubmitting(false);
       if (error.name === "CanceledError") {

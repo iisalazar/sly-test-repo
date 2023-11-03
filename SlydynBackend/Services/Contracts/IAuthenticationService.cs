@@ -8,5 +8,8 @@ public interface IAuthenticationService
   Task<IdentityResult> RegisterUser(RegisterUserDto userDto);
   Task<TokensForAuthenticationDto> LoginUser(LoginUserDto userDto);
 
+  Task<Guid> LoginUserWithSession(LoginUserDto userDto);
+  Task<UserDto> GetUserSession(Guid sessionId);
+
   Task<UserDto> GetUserPublicInfo(string username);
 }

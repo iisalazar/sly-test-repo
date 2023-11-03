@@ -2,18 +2,17 @@
 import React from 'react'
 import { useLoginForm } from './hooks'
 import { useAuthProvider } from '@/context/AuthContext'
-
+import { useRouter } from 'next/router';
 
 
 function LoginPage() {
-  const authProvider = useAuthProvider();
+  const router = useRouter();
   const { signupForm } = useLoginForm({
     onLoginError: (err) => {
       console.log(err)
     },
     onLoginSuccess: (data) => {
-      authProvider.setAccessToken(data.accessToken);
-      authProvider.setExpiresIn(data.expiresIn);
+      router.push('/me');
     }
   })
 
