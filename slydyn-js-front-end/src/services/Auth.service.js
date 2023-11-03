@@ -62,6 +62,23 @@ class AuthService {
 
   /**
    *
+   * @param {LoginRequestFields} values
+   * @param {AbortSignal} [signal]
+   * @returns {Promise<import('axios').AxiosResponse<string>>}
+   */
+  async loginWithSession(values, signal = undefined) {
+    const res = await this.httpClient.post("/api/auth/login/session", values, {
+      signal,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    return res;
+  }
+
+  /**
+   *
    * @param {string} accessToken
    * @param {AbortSignal} [signal]
    * @returns {Promise<import('../schemas/User/UserSchema').UserDto>}
@@ -80,6 +97,17 @@ class AuthService {
       console.log(error);
       throw error;
     }
+  }
+
+  async fetchMeWithSession() {
+    const res = await this.httpClient.get("/api/auth/me/session", {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    const parsedData = mapToDtoSafe(res.data, UserSchema);
+    return parsedData;
   }
 }
 

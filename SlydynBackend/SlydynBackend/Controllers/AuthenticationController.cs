@@ -41,6 +41,34 @@ public class AuthenticationController : ControllerBase
     return Ok(result);
   }
 
+  [HttpPost("login/session")]
+  public async Task<ActionResult<Guid>> LoginUserWithSession([FromBody] LoginUserDto userDto)
+  {
+    var result = await _service.AuthService.LoginUserWithSession(userDto);
+    Response.Cookies.Append("sessionId", result.ToString(), new CookieOptions()
+    {
+      HttpOnly = true,
+      Secure = false
+    });
+    return Ok(result);
+  }
+
+  [HttpGet("me/session")]
+  public ActionResult<UserDto> GetMeWithSession()
+  {
+    var context = HttpContext;
+    var userDto = new UserDto
+    {
+      UserName = context.Session.GetString("User.UserName"),
+      Id = Guid.Parse(context.Session.GetString("User.Id")!),
+      Email = context.Session.GetString("User.Email"),
+      FirstName = context.Session.GetString("User.FirstName"),
+      LastName = context.Session.GetString("User.LastName "),
+    };
+    return Ok(userDto);
+  }
+
+
   [HttpGet("{username}")]
   [Authorize]
   public async Task<ActionResult<UserDto>> GetUser(string username)
