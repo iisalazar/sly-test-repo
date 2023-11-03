@@ -1,5 +1,5 @@
-# Slydyn test repository
-An example monorepo that the devs can follow as they developm the MVP for HiveAuto, Inc.
+# Sly test repository
+An example monorepo that runs .NET on the backend and NextJS on the front-end
 
 ## How to run
 You need to have `docker compose` installed in your system. 
